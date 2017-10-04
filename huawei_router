@@ -6,13 +6,7 @@ PASSWD=admin
 . ~/.huawei_router
 
 DEBUG=0
-TMP_STATE=/tmp/huawei-state.$$
 TMP_HEADER=/tmp/huawei-headers.$$
-
-cleanup() {
-    rm -f "$TMP_STATE" "$TMP_HEADER"
-}
-trap cleanup EXIT
 
 log() {
     echo "[huawei_router] $*" >&2
@@ -23,15 +17,11 @@ extract_from_xml() {
 }
 
 prepare() {
-    [ -f "$TMP_STATE" ] && . "$TMP_STATE"
-
     if [ -z "$COOKIE" ]; then
         log "Connecting"
-        resp=$(curl -s http://$ROUTER/api/webserver/SesTokInfo)
-        COOKIE=$(extract_from_xml "$resp" SesInfo)
-        echo "COOKIE='$COOKIE'" > "$TMP_STATE"
-        TOKEN=$(extract_from_xml "$resp" TokInfo)
-        echo "TOKEN='$TOKEN'" >> "$TMP_STATE"
+        response=$(curl -s http://$ROUTER/api/webserver/SesTokInfo)
+        COOKIE=$(extract_from_xml "$response" SesInfo)
+        TOKEN=$(extract_from_xml "$response" TokInfo)
     fi
 }
 
@@ -49,7 +39,7 @@ request() {
         [ $DEBUG -eq 1 ] && log "Posting: $data"
 
         rm -f "$TMP_HEADER"
-        resp=$(curl $curl_flags http://$ROUTER/$url \
+        response=$(curl $curl_flags http://$ROUTER/$url \
             -D "$TMP_HEADER" \
             -H "__RequestVerificationToken: $TOKEN" \
             -H "Cookie: $COOKIE" \
@@ -61,32 +51,26 @@ request() {
         new_cookie=$(sed -n 's/^Set-Cookie:\([^;\n]*\).*$/\1/p' "$TMP_HEADER")
         if [ -n "$new_cookie" ]; then
             [ $DEBUG -eq 1 ] && log "Saving new session cookie"
-            s=$([ -f "$TMP_STATE" ] && grep -v "COOKIE=" "$TMP_STATE")
-            echo "$s" > "$TMP_STATE"
-            echo "COOKIE='$new_cookie'" >> "$TMP_STATE"
+            COOKIE="$new_cookie"
         fi
         new_token=$(sed -n 's/^__RequestVerificationToken:\([^\r]*\).*$/\1/p' "$TMP_HEADER")
         if [ -n "$new_token" ]; then
             [ $DEBUG -eq 1 ] && log "Saving new token"
-            s=$([ -f "$TMP_STATE" ] && grep -v "TOKEN=" "$TMP_STATE")
-            echo "$s" > "$TMP_STATE"
-            echo "TOKEN='$new_token'" >> "$TMP_STATE"
+            TOKEN="$new_token"
         fi
         rm -f "$TMP_HEADER"
     else
-        resp=$(curl $curl_flags http://$ROUTER/$url \
+        response=$(curl $curl_flags http://$ROUTER/$url \
             -H "Cookie: $COOKIE")
     fi
 
-    [ $DEBUG -eq 1 ] && log "Response: $resp"
-
-    echo "$resp"
+    [ $DEBUG -eq 1 ] && log "Response: $response"
 }
 
 is_logged_in() {
-    resp=$(request "api/user/state-login")
-    username=$(extract_from_xml "$resp" Username)
-    state=$(extract_from_xml "$resp" State)
+    request "api/user/state-login"
+    username=$(extract_from_xml "$response" Username)
+    state=$(extract_from_xml "$response" State)
     if [ "$state" = "0" ]; then
         log "Username $username, logged in"
     else
@@ -100,45 +84,44 @@ is_logged_in() {
 
 status() {
     request "api/monitoring/status"
+    echo "$response"
 }
 
 network() {
     request "api/net/current-plmn"
+    echo "$response"
 }
 
 month_stats() {
     request "api/monitoring/month_statistics"
+    echo "$response"
 }
 
 login() {
     prepare
     password=$(printf "$(printf "$PASSWD" | sha256sum |  cut -d ' ' -f 1)" | base64 -w 0)
     login_xml="<?xml version=\"1.0\" encoding=\"UTF-8\"?><request><Username>$LOGIN</Username><Password>$(printf "$(printf "$LOGIN$password$TOKEN" | sha256sum | cut -d ' ' -f 1)" | base64 -w 0)</Password><password_type>4</password_type></request>"
-    resp=$(request api/user/login "$login_xml")
+    request api/user/login "$login_xml"
 
-    ok=$(extract_from_xml "$resp" response)
+    ok=$(extract_from_xml "$response" response)
     if [ "$ok" != "OK" ]; then
         log "Couldn't log in"
         exit 2
     fi
 }
 
-sms_count() {
-    request "api/sms/sms-count"
-}
-
-unread_count() {
-    resp=$(request "api/monitoring/check-notifications")
-    extract_from_xml "$resp" UnreadMessage
+unread_sms_count() {
+    request "api/monitoring/check-notifications"
+    extract_from_xml "$response" UnreadMessage
 }
 
 send_sms() {
     phone=$1
     msg=$2
     sms_xml="<?xml version='1.0' encoding='UTF-8'?><request><Index>-1</Index><Phones><Phone>$phone</Phone></Phones><Sca></Sca><Content>$msg</Content><Length>${#msg}</Length><Reserved>1</Reserved><Date>$(date +"%Y-%m-%d %H:%M:%S")</Date></request>"
-    resp=$(request api/sms/send-sms "$sms_xml")
+    request api/sms/send-sms "$sms_xml"
 
-    ok=$(extract_from_xml "$resp" response)
+    ok=$(extract_from_xml "$response" response)
     if [ "$ok" != "OK" ]; then
         log "Couldn't send SMS"
         exit 2
@@ -147,12 +130,25 @@ send_sms() {
     fi
 }
 
+read_sms() {
+    request "api/sms/sms-count"
+    count=$(extract_from_xml "$response" LocalInbox)
+    log "$count message(s) in the inbox"
+
+    if [ -n "$count" -a $count -gt 0 ]; then
+        login
+        sms_list_xml="<?xml version=\"1.0\" encoding=\"UTF-8\"?><request><PageIndex>1</PageIndex><ReadCount>$count</ReadCount><BoxType>1</BoxType><SortType>0</SortType><Ascending>0</Ascending><UnreadPreferred>0</UnreadPreferred></request>"
+        request api/sms/sms-list "$sms_list_xml"
+        echo $response
+    fi
+}
+
 delete_sms() {
     index=$1
     sms_xml="<?xml version=\"1.0\" encoding=\"UTF-8\"?><request><Index>$index</Index></request>"
-    resp=$(request api/sms/delete-sms "$sms_xml")
+    request api/sms/delete-sms "$sms_xml"
 
-    ok=$(extract_from_xml "$resp" response)
+    ok=$(extract_from_xml "$response" response)
     if [ "$ok" != "OK" ]; then
         log "Couldn't delete SMS $index"
         exit 2
@@ -161,17 +157,17 @@ delete_sms() {
     fi
 }
 
-purge_outbox() {
-    resp=$(sms_count)
-    count=$(extract_from_xml "$resp" LocalOutbox)
-    log "$count messages in the outbox"
+purge_sms_outbox() {
+    request "api/sms/sms-count"
+    count=$(extract_from_xml "$response" LocalOutbox)
+    log "$count message(s) in the outbox"
+
     if [ -n "$count" -a $count -gt 0 ]; then
         login
-        sms_list_xml='<?xml version="1.0" encoding="UTF-8"?><request><PageIndex>1</PageIndex><ReadCount>20</ReadCount><BoxType>2</BoxType><SortType>0</SortType><Ascending>0</Ascending><UnreadPreferred>0</UnreadPreferred></request>'
+        sms_list_xml="<?xml version=\"1.0\" encoding=\"UTF-8\"?><request><PageIndex>1</PageIndex><ReadCount>$count</ReadCount><BoxType>2</BoxType><SortType>0</SortType><Ascending>0</Ascending><UnreadPreferred>0</UnreadPreferred></request>"
+        request api/sms/sms-list "$sms_list_xml"
 
-        resp=$(request api/sms/sms-list "$sms_list_xml")
-
-        for index in $(extract_from_xml "$resp" Index); do
+        for index in $(extract_from_xml "$response" Index); do
             delete_sms $index
         done
     fi
@@ -180,21 +176,26 @@ purge_outbox() {
 usage() {
     exec 1>&2
     echo "Usage:"
-    echo "  $0 [status|network|month_stats|unread_count|purge_outbox]"
-    echo "  $0 send <phone> <msg>"
+    echo "  $0 [status|network|month_stats|unread_sms_count|purge_sms_outbox]"
+    echo "  $0 read_sms"
+    echo "  $0 send_sms <phone> <msg>"
+    echo "  $0 delete_sms <sms_id>"
     echo "  $0 request <api/...>"
     echo "  $0 login_request <api/...>"
+    exit 2
 }
 
 case $1 in
     request)
         shift
         request $1
+        echo "$response"
         ;;
     login_request)
         shift
         login
         request $1
+        echo "$response"
         ;;
     status)
         status
@@ -205,19 +206,26 @@ case $1 in
     month_stats)
         month_stats
         ;;
-    unread_count)
-        unread_count
+    unread_sms_count)
+        unread_sms_count
         ;;
-    send)
-        login
+    send_sms)
         shift
+        login
         send_sms "$@"
         ;;
-    purge_outbox)
-        purge_outbox
+    read_sms)
+        read_sms
+        ;;
+    delete_sms)
+        shift
+        login
+        delete_sms $1
+        ;;
+    purge_sms_outbox)
+        purge_sms_outbox
         ;;
     *)
         usage
-        exit 2
         ;;
 esac
