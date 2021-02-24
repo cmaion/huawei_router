@@ -53,7 +53,7 @@ request() {
             [ $DEBUG -eq 1 ] && log "Saving new session cookie"
             COOKIE="$new_cookie"
         fi
-        new_token=$(sed -n 's/^__RequestVerificationToken:\([^\r]*\).*$/\1/p' "$TMP_HEADER")
+        new_token=$(sed -n 's/^__RequestVerificationTokentwo:\([^\r]*\).*$/\1/p' "$TMP_HEADER")
         if [ -n "$new_token" ]; then
             [ $DEBUG -eq 1 ] && log "Saving new token"
             TOKEN="$new_token"
