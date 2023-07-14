@@ -4,17 +4,6 @@ A shell script to interact with Huawei 4G routers: status, SMS
 Tested on:
 * E5573Bs-320, B525s-23a
 
-## Installation
-
-Set router ip, login and password in ~/.huawei_router:
-
-```sh
-$ vi ~/.huawei_router
-ROUTER=192.168.1.1
-LOGIN=admin
-PASSWD=admin
-```
-
 
 ## Usage
 
