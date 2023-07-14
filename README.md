@@ -2,7 +2,7 @@
 A shell script to interact with Huawei 4G routers: status, SMS
 
 Tested on:
-* E5573Bs-320
+* E5573Bs-320, B525s-23a
 
 ## Installation
 
