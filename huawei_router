@@ -253,8 +253,6 @@ case $1 in
         send_restart
         ;;
     signal)
-        shift
-        login
         read_signal
         ;;
     *)
