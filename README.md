@@ -1,7 +1,7 @@
 ## Synopsis
 A shell script to interact with Huawei 4G routers: status, SMS
 
-## Add function to reboot device
+## Add function to restart device
 On Openwrt it works by installing the following packages: curl, sed, coreutils-base64
 thanks to:
 https://github.com/cmaion/huawei_router
@@ -16,7 +16,7 @@ Tested on:
 ```sh
 $ ./huawei_router
 Usage:
-  ./huawei_router [status|network|reboot|month_stats|unread_sms_count|purge_sms_outbox]
+  ./huawei_router [status|network|restart|month_stats|unread_sms_count|purge_sms_outbox]
   ./huawei_router read_sms
   ./huawei_router send_sms <phone> <msg>
   ./huawei_router delete_sms <sms_id>
