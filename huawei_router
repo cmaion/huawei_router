@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/sh
 ROUTER=192.168.1.1
 LOGIN=admin
 PASSWD=admin
@@ -115,6 +115,19 @@ unread_sms_count() {
     extract_from_xml "$response" UnreadMessage
 }
 
+send_reboot() {
+    send_reboot="<?xml version:"1.0" encoding="UTF-8"?><request><Control>1</Control></request>"
+    request api/device/control "$send_reboot"
+    
+    ok=$(extract_from_xml "$response" response)
+    if [ "$ok" != "OK" ]; then
+        log "Error: send reboot failed"
+        exit 2
+    else
+        log "Reboot sent successfully"
+    fi
+}
+    
 send_sms() {
     phone=$1
     msg=$2
@@ -176,7 +189,7 @@ purge_sms_outbox() {
 usage() {
     exec 1>&2
     echo "Usage:"
-    echo "  $0 [status|network|month_stats|unread_sms_count|purge_sms_outbox]"
+    echo "  $0 [status|network|reboot|month_stats|unread_sms_count|purge_sms_outbox]"
     echo "  $0 read_sms"
     echo "  $0 send_sms <phone> <msg>"
     echo "  $0 delete_sms <sms_id>"
@@ -224,6 +237,10 @@ case $1 in
         ;;
     purge_sms_outbox)
         purge_sms_outbox
+        ;;
+    shift
+        login
+        send_reboot
         ;;
     *)
         usage
