@@ -132,9 +132,8 @@ send_restart() {
 }
 
 read_signal() {
-    xml_response="<?xml version="1.0" encoding="UTF-8"?>"
     request "api/device/signal" "$xml_response"
-    echo "$response"
+    log "$response"
 }
     
 send_sms() {
