@@ -130,6 +130,12 @@ send_restart() {
         log "Ok: send restart successfully"
     fi
 }
+
+read_signal() {
+    xml_response="<?xml version="1.0" encoding="UTF-8"?>"
+    request "api/device/signal" "$xml_response"
+    echo "$response"
+}
     
 send_sms() {
     phone=$1
@@ -192,7 +198,7 @@ purge_sms_outbox() {
 usage() {
     exec 1>&2
     echo "Usage:"
-    echo "  $0 [status|network|restart|month_stats|unread_sms_count|purge_sms_outbox]"
+    echo "  $0 [status|signal|network|restart|month_stats|unread_sms_count|purge_sms_outbox]"
     echo "  $0 read_sms"
     echo "  $0 send_sms <phone> <msg>"
     echo "  $0 delete_sms <sms_id>"
@@ -241,9 +247,15 @@ case $1 in
     purge_sms_outbox)
         purge_sms_outbox
         ;;
-    shift
+    restart)
+        shift
         login
         send_restart
+        ;;
+    signal)
+        shift
+        login
+        read_signal
         ;;
     *)
         usage
