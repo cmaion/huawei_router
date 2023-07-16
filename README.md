@@ -16,7 +16,7 @@ Tested on:
 ```sh
 $ ./huawei_router
 Usage:
-  ./huawei_router [status|network|restart|month_stats|unread_sms_count|purge_sms_outbox]
+  ./huawei_router [status|network|set3g|set4g|setauto|restart|month_stats|unread_sms_count|purge_sms_outbox]
   ./huawei_router read_sms
   ./huawei_router send_sms <phone> <msg>
   ./huawei_router delete_sms <sms_id>
