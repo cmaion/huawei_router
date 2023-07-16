@@ -7,6 +7,12 @@ thanks to:
 https://github.com/cmaion/huawei_router
 https://github.com/mkorz/b618reboot/tree/master
 
+## Add function to set 3g/4g/auto device
+if it can be useful to switch from:
+auto
+3g
+4g
+
 Tested on:
 * Huawei B525s-23a
 
