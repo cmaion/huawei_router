@@ -3,8 +3,6 @@ ROUTER=192.168.1.1
 LOGIN=admin
 PASSWD=admin
 
-
-
 DEBUG=1
 TMP_HEADER=/tmp/huawei-headers.$$
 
@@ -116,6 +114,11 @@ unread_sms_count() {
 }
 
 send_reboot() {
+    #
+    # thanks to:
+    # https://github.com/cmaion/huawei_router
+    # https://github.com/mkorz/b618reboot/tree/master
+    #
     send_reboot="<?xml version:"1.0" encoding="UTF-8"?><request><Control>1</Control></request>"
     request api/device/control "$send_reboot"
     
