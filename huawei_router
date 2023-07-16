@@ -135,7 +135,19 @@ read_signal() {
     request "api/device/signal" "$xml_response"
     log "$response"
 }
-    
+
+set_4g() {
+    send_4g="<request><NetworkMode>03</NetworkMode><NetworkBand>3FFFFFFF</NetworkBand><LTEBand>'+ltesum+'</LTEBand></request>"
+    request api/net/net-mode "$send_4g"
+    log "$response"
+}
+
+set_3g() {
+    send_3g="<request><NetworkMode>02</NetworkMode><NetworkBand>3FFFFFFF</NetworkBand><LTEBand>'+ltesum+'</LTEBand></request>"
+    request api/net/net-mode "$send_4g"
+    log "$response"
+}
+
 send_sms() {
     phone=$1
     msg=$2
@@ -197,7 +209,7 @@ purge_sms_outbox() {
 usage() {
     exec 1>&2
     echo "Usage:"
-    echo "  $0 [status|signal|network|restart|month_stats|unread_sms_count|purge_sms_outbox]"
+    echo "  $0 [status|signal|set3g|set4g|network|restart|month_stats|unread_sms_count|purge_sms_outbox]"
     echo "  $0 read_sms"
     echo "  $0 send_sms <phone> <msg>"
     echo "  $0 delete_sms <sms_id>"
@@ -253,6 +265,16 @@ case $1 in
         ;;
     signal)
         read_signal
+        ;;
+    set4g)
+        shift
+        login
+        set_4g
+        ;;
+    set3g)
+       shift
+        login
+        set_3g
         ;;
     *)
         usage
