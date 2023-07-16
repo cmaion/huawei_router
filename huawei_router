@@ -137,14 +137,14 @@ read_signal() {
 }
 
 set_4g() {
-    send_4g="<request><NetworkMode>03</NetworkMode><NetworkBand>3FFFFFFF</NetworkBand><LTEBand>'+ltesum+'</LTEBand></request>"
+    send_4g="<?xml version:'1.0' encoding=\"UTF-8\"?><request><NetworkMode>03</NetworkMode><NetworkBand>3FFFFFFF</NetworkBand><LTEBand>7FFFFFFFFFFFFFFF</LTEBand></request>"
     request api/net/net-mode "$send_4g"
     log "$response"
 }
 
 set_3g() {
-    send_3g="<request><NetworkMode>02</NetworkMode><NetworkBand>3FFFFFFF</NetworkBand><LTEBand>'+ltesum+'</LTEBand></request>"
-    request api/net/net-mode "$send_4g"
+    send_3g="<?xml version:'1.0' encoding=\"UTF-8\"?><request><NetworkMode>02</NetworkMode><NetworkBand>3FFFFFFF</NetworkBand><LTEBand>7FFFFFFFFFFFFFFF</LTEBand></request>"
+    request api/net/net-mode "$send_3g"
     log "$response"
 }
 
