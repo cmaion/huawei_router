@@ -113,7 +113,7 @@ unread_sms_count() {
     extract_from_xml "$response" UnreadMessage
 }
 
-send_reboot() {
+send_restart() {
     #
     # thanks to:
     # https://github.com/cmaion/huawei_router
@@ -124,10 +124,10 @@ send_reboot() {
     
     ok=$(extract_from_xml "$response" response)
     if [ "$ok" != "OK" ]; then
-        log "Error: send reboot failed"
+        log "Error: send restart failed"
         exit 2
     else
-        log "Reboot sent successfully"
+        log "Ok: send restart successfully"
     fi
 }
     
@@ -192,7 +192,7 @@ purge_sms_outbox() {
 usage() {
     exec 1>&2
     echo "Usage:"
-    echo "  $0 [status|network|reboot|month_stats|unread_sms_count|purge_sms_outbox]"
+    echo "  $0 [status|network|restart|month_stats|unread_sms_count|purge_sms_outbox]"
     echo "  $0 read_sms"
     echo "  $0 send_sms <phone> <msg>"
     echo "  $0 delete_sms <sms_id>"
@@ -243,7 +243,7 @@ case $1 in
         ;;
     shift
         login
-        send_reboot
+        send_restart
         ;;
     *)
         usage
