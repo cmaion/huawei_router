@@ -3,7 +3,7 @@ ROUTER=192.168.1.1
 LOGIN=admin
 PASSWD=admin
 
-DEBUG=1
+DEBUG=0
 TMP_HEADER=/tmp/huawei-headers.$$
 
 log() {
@@ -121,14 +121,13 @@ send_restart() {
     #
     send_reboot="<?xml version:"1.0" encoding="UTF-8"?><request><Control>1</Control></request>"
     request api/device/control "$send_reboot"
-    
+
     ok=$(extract_from_xml "$response" response)
     if [ "$ok" != "OK" ]; then
         log "Error: send restart failed"
         exit 2
     else
         log "Ok: send restart successfully"
-        
         # log into openwrt log
         logger "exec: huawei_router restart"
         #
@@ -136,8 +135,7 @@ send_restart() {
 }
 
 read_signal() {
-    request "api/device/signal" "$xml_response"
-    log "$response"
+    request "api/device/signal"
 }
 
 set_auto() {
@@ -274,7 +272,10 @@ case $1 in
         send_restart
         ;;
     signal)
+        shift
+        login
         read_signal
+	    echo "$response"
         ;;
     set4g)
         shift
@@ -282,12 +283,12 @@ case $1 in
         set_4g
         ;;
     set3g)
-       shift
+        shift
         login
         set_3g
         ;;
     setauto)
-       shift
+        shift
         login
         set_auto
         ;;
