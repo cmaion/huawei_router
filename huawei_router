@@ -275,7 +275,7 @@ case $1 in
         shift
         login
         read_signal
-	    echo "$response"
+	echo "$response"
         ;;
     set4g)
         shift
