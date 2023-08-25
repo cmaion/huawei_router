@@ -1,9 +1,9 @@
-#!/bin/bash
+#!/bin/sh
 ROUTER=192.168.1.1
 LOGIN=admin
 PASSWD=admin
 
-. ~/.huawei_router
+test -f ~/.huawei_router && . ~/.huawei_router
 
 DEBUG=0
 TMP_HEADER=/tmp/huawei-headers.$$
@@ -173,13 +173,51 @@ purge_sms_outbox() {
     fi
 }
 
+restart() {
+    # https://github.com/mkorz/b618reboot/tree/master
+    send_reboot="<?xml version:"1.0" encoding="UTF-8"?><request><Control>1</Control></request>"
+    request api/device/control "$send_reboot"
+
+    ok=$(extract_from_xml "$response" response)
+    if [ "$ok" != "OK" ]; then
+        log "Couldn't restart"
+        exit 2
+    else
+        log "Restarted"
+    fi
+}
+
+signal() {
+    request "api/device/signal"
+    echo "$response"
+}
+
+signal_auto() {
+    send_auto="<?xml version:'1.0' encoding='UTF-8'?><request><NetworkMode>00</NetworkMode><NetworkBand>3FFFFFFF</NetworkBand><LTEBand>7FFFFFFFFFFFFFFF</LTEBand></request>"
+    request api/net/net-mode "$send_auto"
+    log "$response"
+}
+
+signal_4g() {
+    send_4g="<?xml version:'1.0' encoding='UTF-8'?><request><NetworkMode>03</NetworkMode><NetworkBand>3FFFFFFF</NetworkBand><LTEBand>7FFFFFFFFFFFFFFF</LTEBand></request>"
+    request api/net/net-mode "$send_4g"
+    log "$response"
+}
+
+signal_3g() {
+    send_3g="<?xml version:'1.0' encoding='UTF-8'?><request><NetworkMode>02</NetworkMode><NetworkBand>3FFFFFFF</NetworkBand><LTEBand>7FFFFFFFFFFFFFFF</LTEBand></request>"
+    request api/net/net-mode "$send_3g"
+    log "$response"
+}
+
 usage() {
     exec 1>&2
     echo "Usage:"
-    echo "  $0 [status|network|month_stats|unread_sms_count|purge_sms_outbox]"
+    echo "  $0 [status|network|restart|month_stats|unread_sms_count|purge_sms_outbox|signal]"
     echo "  $0 read_sms"
     echo "  $0 send_sms <phone> <msg>"
     echo "  $0 delete_sms <sms_id>"
+    echo "  $0 signal <3g|4g|auto>"
     echo "  $0 request <api/...>"
     echo "  $0 login_request <api/...>"
     exit 2
@@ -224,6 +262,31 @@ case $1 in
         ;;
     purge_sms_outbox)
         purge_sms_outbox
+        ;;
+    restart)
+        shift
+        login
+        restart
+        ;;
+    signal)
+        shift
+        case $1 in
+            auto)
+                login
+                signal_auto
+                ;;
+            3g)
+                login
+                signal_3g
+                ;;
+            4g)
+                login
+                signal_4g
+                ;;
+            *)
+                signal
+                ;;
+        esac
         ;;
     *)
         usage
